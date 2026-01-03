@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart TV Web Box - Pro Player</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #050505; color: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        header {
+            background: #111;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+            height: 65px;
+            z-index: 100;
+            transition: 0.3s;
+        }
+
+        .search-area { flex-grow: 1; display: flex; justify-content: center; gap: 10px; }
+        
+        input[type="text"] {
+            width: 60%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            border: 1px solid #444;
+            background: #222;
+            color: white;
+            outline: none;
+        }
+
+        .btn {
+            padding: 8px 18px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .load-btn { background: #27ae60; color: white; }
+        .fs-btn { background: #ff4d4d; color: white; }
+        .btn:hover { opacity: 0.8; }
+
+        #content-area {
+            flex-grow: 1;
+            width: 100%;
+            position: relative;
+            background: #000;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: black;
+        }
+
+        /* --- Fullscreen-ის ლოგიკა --- */
+        
+        /* როდესაც content-area გადადის სრულ ეკრანზე, ჰედერი იმალება */
+        body:has(#content-area:fullscreen) header {
+            display: none;
+        }
+
+        /* ზოგიერთი ბრაუზერისთვის (Chrome/Safari) */
+        #content-area:fullscreen {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+
+<header id="main-header">
+    <div style="font-size: 20px; font-weight: bold; color: #ff4d4d;">TV BOX</div>
+    
+    <div class="search-area">
+        <input type="text" id="urlInput" placeholder="ჩაწერეთ ლინკი ან საძიებო სიტყვა...">
+        <button class="btn load-btn" onclick="processInput()">ძებნა / გახსნა</button>
+    </div>
+
+    <button class="btn fs-btn" onclick="toggleContentFS()">ფანჯრის გადიდება ⛶</button>
+</header>
+
+<div id="content-area">
+    <div id="placeholder" style="color: #444; text-align: center; margin-top: 20vh;">
+        <h2>Google ძიება და ვიდეო Hub</h2>
+        <p style="margin-top: 10px;">ვიდეოს ჩართვის შემდეგ დააჭირეთ "ფანჯრის გადიდებას" ან პლეერის Full Screen-ს</p>
+    </div>
+</div>
+
+<script>
+    function processInput() {
+        let input = document.getElementById('urlInput').value.trim();
+        const contentArea = document.getElementById('content-area');
+
+        if (!input) {
+            alert("გთხოვთ შეიყვანოთ რამე!");
+            return;
+        }
+
+        let finalUrl = "";
+        const isUrl = input.includes('.') && !input.includes(' ');
+
+        if (isUrl) {
+            finalUrl = input.startsWith('http') ? input : 'https://' + input;
+            
+            if (finalUrl.includes("youtube.com/watch")) {
+                const videoId = finalUrl.split('v=')[1]?.split('&')[0];
+                finalUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&fs=1`;
+            }
+        } else {
+            finalUrl = `https://www.google.com/search?q=${encodeURIComponent(input)}&igu=1`;
+        }
+
+        contentArea.innerHTML = `
+            <iframe 
+                id="mainIframe"
+                src="${finalUrl}" 
+                sandbox="allow-forms allow-scripts allow-same-origin allow-presentation allow-pointer-lock allow-modals"
+                allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer"
+                webkitallowfullscreen 
+                mozallowfullscreen 
+                allowfullscreen>
+            </iframe>`;
+    }
+
+    function toggleContentFS() {
+        const content = document.getElementById('content-area');
+        
+        if (!document.fullscreenElement) {
+            if (content.requestFullscreen) {
+                content.requestFullscreen();
+            } else if (content.webkitRequestFullscreen) {
+                content.webkitRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+
+    document.getElementById('urlInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            processInput();
+        }
+    });
+
+    // ავტომატური დამალვა იმ შემთხვევაშიც, თუ პლეერის შიგნით დააჭირეს Fullscreen-ს
+    document.addEventListener('fullscreenchange', () => {
+        const header = document.getElementById('main-header');
+        if (document.fullscreenElement) {
+            header.style.display = 'none';
+        } else {
+            header.style.display = 'flex';
+        }
+    });
+</script>
+
+</body>
+</html>
